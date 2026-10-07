@@ -1,6 +1,6 @@
 # MCsim_differinglanguages
 
-[![tests](https://github.com/vincal848/MCsim_differinglanguages/actions/workflows/tests.yml/badge.svg)](https://github.com/vincal848/MCsim_differinglanguages/actions/workflows/tests.yml)
+[![tests](https://github.com/vincal848/monte-carlo-options-multilang/actions/workflows/tests.yml/badge.svg)](https://github.com/vincal848/monte-carlo-options-multilang/actions/workflows/tests.yml)
 
 This project came out of an exercise in writing the same Monte Carlo simulation
 three times, once each in R, C++ and Python, to compare how the languages felt to
