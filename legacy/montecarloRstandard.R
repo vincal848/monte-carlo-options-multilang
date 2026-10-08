@@ -5,7 +5,7 @@
 #
 # 1. Paths are simulated with real-world drift mu = 0.05 but discounted at the
 #    risk-free rate r = 0.03. That is not risk-neutral pricing. At these
-#    parameters it overprices the K=105 call by about 15% (1.05 vs a
+#    parameters it overprices the K=105 call by about 15% (8.18 vs a
 #    Black-Scholes price of 7.13, tens of standard errors away). Pinned by
 #    test_mc_price_matches_black_scholes_within_3_se in tests/test_mc.py,
 #    which the replacement passes and this script would not.

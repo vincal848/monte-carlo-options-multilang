@@ -1,4 +1,4 @@
-# MCsim_differinglanguages
+# monte-carlo-options-multilang
 
 [![tests](https://github.com/vincal848/monte-carlo-options-multilang/actions/workflows/tests.yml/badge.svg)](https://github.com/vincal848/monte-carlo-options-multilang/actions/workflows/tests.yml)
 
@@ -29,8 +29,8 @@ risk-neutral.*
 | **Methods** | Risk-neutral GBM, exact log-Euler steps; closed-form Black-Scholes as the reference; antithetic variates as an option |
 | **Inputs** | S0, r, sigma, T, step count, path count, a list of strikes, a seed |
 | **Outputs** | Call and put price with standard error, per strike, in R, C++ and Python |
-| **Validation** | 19 tests: MC vs Black-Scholes within 3 SE, pathwise put-call parity, E[S_T] at the risk-neutral forward, SE ~ 1/sqrt(N), antithetic variance reduction, seed reproducibility, invalid inputs, cross-language agreement |
-| **Headline result** | The original's drift/discounting mismatch overprices the K=105 call by 14.7% (1.05 vs 7.13), 55 standard errors away |
+| **Validation** | 21 tests: MC vs Black-Scholes within 3 SE, pathwise put-call parity, E[S_T] at the risk-neutral forward, SE ~ 1/sqrt(N), antithetic variance reduction, seed reproducibility, invalid inputs, cross-language agreement |
+| **Headline result** | The original's drift/discounting mismatch overprices the K=105 call by 14.7% (8.18 vs 7.13, a gap of 1.05), 55 standard errors away |
 | **Stack** | Python (NumPy), R, C++17 -- standard library only in C++ |
 
 ## Results
@@ -83,7 +83,7 @@ flowchart LR
     CPP --> TAB
     BS[black_scholes.py<br/>closed form] --> CHK{compare}
     TAB --> CHK
-    CHK --> T[19 tests:<br/>3 SE, parity,<br/>forward, 1/sqrt N,<br/>antithetic, cross-language]
+    CHK --> T[21 tests:<br/>3 SE, parity,<br/>forward, 1/sqrt N,<br/>antithetic, cross-language]
 ```
 
 Each language simulates `n_steps` log-Euler steps of
@@ -139,20 +139,20 @@ g++ -O2 -std=c++17 -o mc mc.cpp && ./mc --s0 100 --r 0.03 --sigma 0.2 --T 1 --n-
 ```
 
 ```bash
-pytest tests -q    # 19 tests; set RSCRIPT to Rscript's path if it is not on PATH
+pytest tests -q    # 21 tests; set RSCRIPT to Rscript's path if it is not on PATH
 ```
 
 ## Repository guide
 
 | Path | Contents |
 |---|---|
-| `mc.py` | Simulation, pricing, standard error, the shared table format |
+| `mc.py` | Simulation, pricing, standard error (pure computation, no I/O) |
 | `black_scholes.py` | Closed-form price, the reference all three languages are checked against |
 | `mc.R` | R port: identical model, identical table format |
 | `mc.cpp` | C++ port: identical model, identical table format, standard library only |
-| `run.py` | `price` (Python only), `compare` (all three languages vs Black-Scholes) |
+| `run.py` | `price` (Python only), `compare` (all three languages vs Black-Scholes), and the shared table format: print, parse, JSON |
 | `plots.py` | `docs/img` figures: path fan, terminal histogram, SE convergence |
-| `tests/` | 19 tests, including cross-language checks that skip (not fail) a missing toolchain locally |
+| `tests/` | 21 tests, including cross-language checks that skip a missing toolchain locally but fail when `CI` is set |
 | `docs/img/` | Generated figures |
 | `legacy/` | The three original scripts, annotated with their defects. Not imported; known broken |
 
