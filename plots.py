@@ -7,12 +7,18 @@ regenerates docs/img/paths_fan.png, docs/img/terminal_hist.png and
 docs/img/convergence.png.
 """
 
+from __future__ import annotations
+
 import math
 import os
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 import mc
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 DOCS_IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "img")
 
@@ -25,7 +31,9 @@ def _plt():
     return plt
 
 
-def paths_fan(S0=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252, n_paths=30, seed=7, ax=None):
+def paths_fan(S0: float = 100.0, r: float = 0.03, sigma: float = 0.2, T: float = 1.0,
+              n_steps: int = 252, n_paths: int = 30, seed: int = 7,
+              ax: Axes | None = None) -> Axes:
     """A handful of simulated paths, to look at rather than to price from."""
     plt = _plt()
     paths = mc.simulate_paths(S0, r, sigma, T, n_steps, n_paths, seed)
@@ -39,8 +47,9 @@ def paths_fan(S0=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252, n_paths=30, seed=
     return ax
 
 
-def terminal_hist(S0=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252, n_paths=20000,
-                  seed=123, ax=None):
+def terminal_hist(S0: float = 100.0, r: float = 0.03, sigma: float = 0.2, T: float = 1.0,
+                  n_steps: int = 252, n_paths: int = 20000, seed: int = 123,
+                  ax: Axes | None = None) -> Axes:
     """Terminal price histogram against the exact lognormal density.
 
     S_T is lognormal by construction under GBM -- this checks that the simulator
@@ -65,8 +74,10 @@ def terminal_hist(S0=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252, n_paths=20000
     return ax
 
 
-def convergence(S0=100.0, K=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252,
-                ns=(100, 300, 1000, 3000, 10000, 30000), seed=123, ax=None):
+def convergence(S0: float = 100.0, K: float = 100.0, r: float = 0.03, sigma: float = 0.2,
+                T: float = 1.0, n_steps: int = 252,
+                ns: tuple[int, ...] = (100, 300, 1000, 3000, 10000, 30000), seed: int = 123,
+                ax: Axes | None = None) -> Axes:
     """Standard error against number of paths, against the 1/sqrt(N) line it
     should follow -- the standard Monte Carlo convergence check.
     """
@@ -84,7 +95,7 @@ def convergence(S0=100.0, K=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252,
     return ax
 
 
-def main():
+def main() -> None:
     plt = _plt()
     os.makedirs(DOCS_IMG, exist_ok=True)
 
