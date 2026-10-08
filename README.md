@@ -10,7 +10,7 @@ motion and two of them priced a European call off the simulated paths.
 I have since rebuilt it. **The original pricing was not risk-neutral: it simulated
 paths under the real-world drift mu = 0.05 but discounted the payoff at the
 risk-free rate r = 0.03, which overprices every call by 12-15% and is not close to
-a statistical fluke -- the error is 55-62 standard errors from Black-Scholes.** The
+a statistical fluke -- at the original 10,000 paths the K=105 error is 6-9 standard errors from Black-Scholes (about 35 at 200,000 paths).** The
 three scripts also priced different things from each other (different strikes, and
 the Python version did not price at all), so "three languages, same model" was not
 true even before the drift bug. All three now simulate the same risk-neutral model,
@@ -30,7 +30,7 @@ risk-neutral.*
 | **Inputs** | S0, r, sigma, T, step count, path count, a list of strikes, a seed |
 | **Outputs** | Call and put price with standard error, per strike, in R, C++ and Python |
 | **Validation** | 21 tests: MC vs Black-Scholes within 3 SE, pathwise put-call parity, E[S_T] at the risk-neutral forward, SE ~ 1/sqrt(N), antithetic variance reduction, seed reproducibility, invalid inputs, cross-language agreement |
-| **Headline result** | The original's drift/discounting mismatch overprices the K=105 call by 14.7% (8.18 vs 7.13, a gap of 1.05), 55 standard errors away |
+| **Headline result** | The original's drift/discounting mismatch overprices the K=105 call by 14.7% (8.18 vs 7.13, a gap of 1.05), 6-9 standard errors away at the original 10,000 paths |
 | **Stack** | Python (NumPy), R, C++17 -- standard library only in C++ |
 
 ## Results
@@ -57,7 +57,7 @@ S0=100, r=0.03, sigma=0.2, T=1, 252 steps, 200,000 paths, seed 123:
 | 105 | black-scholes | 7.128065 | - | - | 9.024846 | - | - |
 
 Every row is within 1.3 standard errors of Black-Scholes -- what a correctly
-risk-neutral simulation should look like, and the opposite of the 55-62 SE gap the
+risk-neutral simulation should look like, and the opposite of the 6-9 SE gap (at 10,000 paths) the
 drift bug produced (next section).
 
 Antithetic variates, same seed, K=100, 10,000 paths: plain SE 0.1404, antithetic

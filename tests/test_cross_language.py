@@ -1,7 +1,7 @@
 """Runs mc.R under Rscript and mc.cpp compiled with g++, and checks both agree
 with Black-Scholes within 3 standard errors -- the same check test_mc.py applies
 to the Python implementation. Skips a language whose toolchain is not found
-locally; when the CI environment variable is set (as on GitHub Actions) a missing
+locally; when REQUIRE_TOOLCHAINS is set (the cross-language CI job sets it) a missing
 toolchain fails instead, so CI can never pass with a language unchecked.
 """
 
@@ -22,8 +22,8 @@ PARAMS = dict(s0=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252, n_paths=200_000,
 
 def _missing(tool):
     msg = "%s not found" % tool
-    if os.environ.get("CI"):
-        pytest.fail(msg + " (CI is set, so this must not be skipped)")
+    if os.environ.get("REQUIRE_TOOLCHAINS"):
+        pytest.fail(msg + " (REQUIRE_TOOLCHAINS is set, so this must not be skipped)")
     pytest.skip(msg)
 
 
@@ -57,9 +57,9 @@ def test_cpp_implementation_matches_black_scholes_within_3_se():
 
 
 def test_missing_toolchain_fails_under_ci_and_skips_locally(monkeypatch):
-    monkeypatch.setenv("CI", "true")
+    monkeypatch.setenv("REQUIRE_TOOLCHAINS", "1")
     with pytest.raises(pytest.fail.Exception):
         _missing("nothing")
-    monkeypatch.delenv("CI")
+    monkeypatch.delenv("REQUIRE_TOOLCHAINS")
     with pytest.raises(pytest.skip.Exception):
         _missing("nothing")
