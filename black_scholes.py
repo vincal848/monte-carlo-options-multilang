@@ -12,7 +12,7 @@ this module does not pull in scipy just to run the tests.
 import math
 
 
-def check_kind(kind):
+def check_kind(kind: str) -> str:
     """Normalize and validate the option type."""
     k = str(kind).lower()
     if k not in ("call", "put"):
@@ -20,11 +20,12 @@ def check_kind(kind):
     return k
 
 
-def _ncdf(x):
+def _ncdf(x: float) -> float:
     return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
 
 
-def price(S0, K, r, sigma, T, kind="call"):
+def price(S0: float, K: float, r: float, sigma: float, T: float,
+          kind: str = "call") -> float:
     """European option price.
 
     >>> round(price(100, 100, 0.05, 0.20, 1.0, "call"), 6)

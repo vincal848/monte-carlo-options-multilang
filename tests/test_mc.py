@@ -133,3 +133,15 @@ def test_invalid_inputs_raise():
         mc.price_european(100, [], 0.03, 0.2, 1.0, 252, 1000)
     with pytest.raises(ValueError, match="K"):
         mc.price_european(100, [-5.0], 0.03, 0.2, 1.0, 252, 1000)
+
+
+def test_mc_module_is_pure_and_run_owns_the_table_io():
+    """mc.py computes; printing, parsing and JSON live in run.py."""
+    import run
+    for name in ("format_table", "print_table", "parse_table", "write_json"):
+        assert not hasattr(mc, name)
+        assert hasattr(run, name)
+    rows = mc.price_european(100.0, [95.0, 105.0], 0.03, 0.2, 1.0, 12, 1000, seed=1)
+    parsed = run.parse_table("\n".join(run.format_table(rows)))
+    assert [r["K"] for r in parsed] == [95.0, 105.0]
+    assert parsed[0]["call"] == pytest.approx(rows[0]["call"], abs=1e-6)

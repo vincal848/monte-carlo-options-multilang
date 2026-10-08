@@ -1,8 +1,8 @@
 """Runs mc.R under Rscript and mc.cpp compiled with g++, and checks both agree
 with Black-Scholes within 3 standard errors -- the same check test_mc.py applies
 to the Python implementation. Skips a language whose toolchain is not found
-locally; CI sets up both (r-lib/actions/setup-r, g++ is the Ubuntu default) so
-neither is skipped there.
+locally; when REQUIRE_TOOLCHAINS is set (the cross-language CI job sets it) a missing
+toolchain fails instead, so CI can never pass with a language unchecked.
 """
 
 import os
@@ -20,6 +20,13 @@ PARAMS = dict(s0=100.0, r=0.03, sigma=0.2, T=1.0, n_steps=252, n_paths=200_000,
              strikes="95,100,105", seed=123, antithetic=False)
 
 
+def _missing(tool):
+    msg = "%s not found" % tool
+    if os.environ.get("REQUIRE_TOOLCHAINS"):
+        pytest.fail(msg + " (REQUIRE_TOOLCHAINS is set, so this must not be skipped)")
+    pytest.skip(msg)
+
+
 def _assert_matches_black_scholes(rows):
     assert rows, "no rows parsed from the program's stdout"
     for row in rows:
@@ -35,7 +42,7 @@ def _assert_matches_black_scholes(rows):
 
 def test_r_implementation_matches_black_scholes_within_3_se():
     if not run.find_rscript():
-        pytest.skip("Rscript not found (set RSCRIPT or install R)")
+        _missing("Rscript (set RSCRIPT or install R)")
     rows, err = run.run_r(PARAMS)
     assert rows is not None, err
     _assert_matches_black_scholes(rows)
@@ -43,7 +50,16 @@ def test_r_implementation_matches_black_scholes_within_3_se():
 
 def test_cpp_implementation_matches_black_scholes_within_3_se():
     if not run.find_gxx():
-        pytest.skip("g++ not found (set CXX or install one)")
+        _missing("g++ (set CXX or install one)")
     rows, err = run.run_cpp(PARAMS)
     assert rows is not None, err
     _assert_matches_black_scholes(rows)
+
+
+def test_missing_toolchain_fails_under_ci_and_skips_locally(monkeypatch):
+    monkeypatch.setenv("REQUIRE_TOOLCHAINS", "1")
+    with pytest.raises(pytest.fail.Exception):
+        _missing("nothing")
+    monkeypatch.delenv("REQUIRE_TOOLCHAINS")
+    with pytest.raises(pytest.skip.Exception):
+        _missing("nothing")

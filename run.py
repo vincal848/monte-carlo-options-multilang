@@ -10,6 +10,7 @@ price. A missing toolchain is skipped, not an error.
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -23,7 +24,48 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_RSCRIPT = r"C:\Program Files\R\R-4.5.2\bin\Rscript.exe"
 
 
-def find_rscript():
+TABLE_HEADER = "K call call_se put put_se"
+
+
+def format_table(rows: list[dict[str, float]]) -> list[str]:
+    """The table format shared by run.py, mc.R and mc.cpp, so run.py compare can
+    parse R and C++ stdout the same way it reads its own output.
+    """
+    lines = [TABLE_HEADER]
+    for row in rows:
+        lines.append("%.6f %.6f %.6f %.6f %.6f" % (
+            row["K"], row["call"], row["call_se"], row["put"], row["put_se"]))
+    return lines
+
+
+def print_table(rows: list[dict[str, float]]) -> None:
+    for line in format_table(rows):
+        print(line)
+
+
+def parse_table(text: str) -> list[dict[str, float]]:
+    """Inverse of format_table. Tolerant of the header line and blank lines, since
+    it is used to read whatever mc.R or mc.cpp printed to stdout.
+    """
+    rows = []
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) != 5:
+            continue
+        try:
+            K, call, call_se, put, put_se = (float(p) for p in parts)
+        except ValueError:
+            continue
+        rows.append({"K": K, "call": call, "call_se": call_se, "put": put, "put_se": put_se})
+    return rows
+
+
+def write_json(rows: list[dict[str, float]], path: str) -> None:
+    with open(path, "w") as f:
+        json.dump(rows, f, indent=2)
+
+
+def find_rscript() -> str | None:
     env = os.environ.get("RSCRIPT")
     if env and os.path.exists(env):
         return env
@@ -32,11 +74,11 @@ def find_rscript():
     return shutil.which("Rscript")
 
 
-def find_gxx():
+def find_gxx() -> str | None:
     return os.environ.get("CXX") or shutil.which("g++")
 
 
-def to_flags(params):
+def to_flags(params: dict) -> list[str]:
     flags = ["--s0", str(params["s0"]), "--r", str(params["r"]),
               "--sigma", str(params["sigma"]), "--T", str(params["T"]),
               "--n-steps", str(params["n_steps"]), "--n-paths", str(params["n_paths"]),
@@ -46,7 +88,7 @@ def to_flags(params):
     return flags
 
 
-def run_r(params):
+def run_r(params: dict) -> tuple[list[dict[str, float]] | None, str | None]:
     """Run mc.R with Rscript. Returns (rows, None) or (None, reason)."""
     rscript = find_rscript()
     if not rscript:
@@ -59,10 +101,10 @@ def run_r(params):
         return None, str(exc)
     if result.returncode != 0:
         return None, result.stderr.strip() or "mc.R exited with status %d" % result.returncode
-    return mc.parse_table(result.stdout), None
+    return parse_table(result.stdout), None
 
 
-def run_cpp(params):
+def run_cpp(params: dict) -> tuple[list[dict[str, float]] | None, str | None]:
     """Compile and run mc.cpp with g++. Returns (rows, None) or (None, reason)."""
     gxx = find_gxx()
     if not gxx:
@@ -81,29 +123,29 @@ def run_cpp(params):
             return None, str(exc)
     if result.returncode != 0:
         return None, result.stderr.strip() or "mc exited with status %d" % result.returncode
-    return mc.parse_table(result.stdout), None
+    return parse_table(result.stdout), None
 
 
-def parse_strikes(text):
+def parse_strikes(text: str) -> list[float]:
     return [float(s) for s in text.split(",")]
 
 
-def params_from_args(args):
+def params_from_args(args: argparse.Namespace) -> dict:
     return dict(s0=args.s0, r=args.r, sigma=args.sigma, T=args.T, n_steps=args.n_steps,
                 n_paths=args.n_paths, strikes=args.strikes, seed=args.seed,
                 antithetic=args.antithetic)
 
 
-def cmd_price(args):
+def cmd_price(args: argparse.Namespace) -> None:
     strikes = parse_strikes(args.strikes)
     rows = mc.price_european(args.s0, strikes, args.r, args.sigma, args.T,
                              args.n_steps, args.n_paths, args.seed, args.antithetic)
-    mc.print_table(rows)
+    print_table(rows)
     if args.json:
-        mc.write_json(rows, args.json)
+        write_json(rows, args.json)
 
 
-def cmd_compare(args):
+def cmd_compare(args: argparse.Namespace) -> None:
     params = params_from_args(args)
     strikes = parse_strikes(args.strikes)
 
@@ -141,10 +183,10 @@ def cmd_compare(args):
         print("(C++ skipped: %s)" % cpp_err)
 
     if args.json:
-        mc.write_json(py_rows, args.json)
+        write_json(py_rows, args.json)
 
 
-def add_common(p):
+def add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--s0", type=float, default=100.0, help="spot price")
     p.add_argument("--r", type=float, default=0.03, help="risk-free rate")
     p.add_argument("--sigma", type=float, default=0.2, help="annual volatility")
@@ -157,7 +199,7 @@ def add_common(p):
     p.add_argument("--json", default=None, help="write the table to this path as JSON")
 
 
-def build_parser():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -173,7 +215,7 @@ def build_parser():
     return parser
 
 
-def main():
+def main() -> None:
     args = build_parser().parse_args()
     args.func(args)
 

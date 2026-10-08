@@ -1,4 +1,4 @@
-# MCsim_differinglanguages
+# monte-carlo-options-multilang
 
 [![tests](https://github.com/vincal848/monte-carlo-options-multilang/actions/workflows/tests.yml/badge.svg)](https://github.com/vincal848/monte-carlo-options-multilang/actions/workflows/tests.yml)
 
@@ -10,7 +10,7 @@ motion and two of them priced a European call off the simulated paths.
 I have since rebuilt it. **The original pricing was not risk-neutral: it simulated
 paths under the real-world drift mu = 0.05 but discounted the payoff at the
 risk-free rate r = 0.03, which overprices every call by 12-15% and is not close to
-a statistical fluke -- the error is 55-62 standard errors from Black-Scholes.** The
+a statistical fluke -- at the original 10,000 paths the K=105 error is 6-9 standard errors from Black-Scholes (about 35 at 200,000 paths).** The
 three scripts also priced different things from each other (different strikes, and
 the Python version did not price at all), so "three languages, same model" was not
 true even before the drift bug. All three now simulate the same risk-neutral model,
@@ -29,8 +29,8 @@ risk-neutral.*
 | **Methods** | Risk-neutral GBM, exact log-Euler steps; closed-form Black-Scholes as the reference; antithetic variates as an option |
 | **Inputs** | S0, r, sigma, T, step count, path count, a list of strikes, a seed |
 | **Outputs** | Call and put price with standard error, per strike, in R, C++ and Python |
-| **Validation** | 19 tests: MC vs Black-Scholes within 3 SE, pathwise put-call parity, E[S_T] at the risk-neutral forward, SE ~ 1/sqrt(N), antithetic variance reduction, seed reproducibility, invalid inputs, cross-language agreement |
-| **Headline result** | The original's drift/discounting mismatch overprices the K=105 call by 14.7% (1.05 vs 7.13), 55 standard errors away |
+| **Validation** | 21 tests: MC vs Black-Scholes within 3 SE, pathwise put-call parity, E[S_T] at the risk-neutral forward, SE ~ 1/sqrt(N), antithetic variance reduction, seed reproducibility, invalid inputs, cross-language agreement |
+| **Headline result** | The original's drift/discounting mismatch overprices the K=105 call by 14.7% (8.18 vs 7.13, a gap of 1.05), 6-9 standard errors away at the original 10,000 paths |
 | **Stack** | Python (NumPy), R, C++17 -- standard library only in C++ |
 
 ## Results
@@ -57,7 +57,7 @@ S0=100, r=0.03, sigma=0.2, T=1, 252 steps, 200,000 paths, seed 123:
 | 105 | black-scholes | 7.128065 | - | - | 9.024846 | - | - |
 
 Every row is within 1.3 standard errors of Black-Scholes -- what a correctly
-risk-neutral simulation should look like, and the opposite of the 55-62 SE gap the
+risk-neutral simulation should look like, and the opposite of the 6-9 SE gap (at 10,000 paths) the
 drift bug produced (next section).
 
 Antithetic variates, same seed, K=100, 10,000 paths: plain SE 0.1404, antithetic
@@ -83,7 +83,7 @@ flowchart LR
     CPP --> TAB
     BS[black_scholes.py<br/>closed form] --> CHK{compare}
     TAB --> CHK
-    CHK --> T[19 tests:<br/>3 SE, parity,<br/>forward, 1/sqrt N,<br/>antithetic, cross-language]
+    CHK --> T[21 tests:<br/>3 SE, parity,<br/>forward, 1/sqrt N,<br/>antithetic, cross-language]
 ```
 
 Each language simulates `n_steps` log-Euler steps of
@@ -139,20 +139,20 @@ g++ -O2 -std=c++17 -o mc mc.cpp && ./mc --s0 100 --r 0.03 --sigma 0.2 --T 1 --n-
 ```
 
 ```bash
-pytest tests -q    # 19 tests; set RSCRIPT to Rscript's path if it is not on PATH
+pytest tests -q    # 21 tests; set RSCRIPT to Rscript's path if it is not on PATH
 ```
 
 ## Repository guide
 
 | Path | Contents |
 |---|---|
-| `mc.py` | Simulation, pricing, standard error, the shared table format |
+| `mc.py` | Simulation, pricing, standard error (pure computation, no I/O) |
 | `black_scholes.py` | Closed-form price, the reference all three languages are checked against |
 | `mc.R` | R port: identical model, identical table format |
 | `mc.cpp` | C++ port: identical model, identical table format, standard library only |
-| `run.py` | `price` (Python only), `compare` (all three languages vs Black-Scholes) |
+| `run.py` | `price` (Python only), `compare` (all three languages vs Black-Scholes), and the shared table format: print, parse, JSON |
 | `plots.py` | `docs/img` figures: path fan, terminal histogram, SE convergence |
-| `tests/` | 19 tests, including cross-language checks that skip (not fail) a missing toolchain locally |
+| `tests/` | 21 tests, including cross-language checks that skip a missing toolchain locally but fail when `CI` is set |
 | `docs/img/` | Generated figures |
 | `legacy/` | The three original scripts, annotated with their defects. Not imported; known broken |
 

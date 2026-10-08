@@ -13,18 +13,19 @@ holds exactly path by path (call_payoff - put_payoff = S_T - K for every path),
 rather than as two independent estimates that merely happen to agree.
 """
 
-import json
 import math
 
 import numpy as np
 
 
-def _check_positive(name, value):
+def _check_positive(name: str, value: float) -> None:
     if value <= 0:
         raise ValueError("%s must be strictly positive, got %r" % (name, value))
 
 
-def simulate_terminal(S0, r, sigma, T, n_steps, n_paths, seed=None, antithetic=False):
+def simulate_terminal(S0: float, r: float, sigma: float, T: float, n_steps: int,
+                      n_paths: int, seed: int | None = None,
+                      antithetic: bool = False) -> np.ndarray:
     """Terminal prices S_T, one per path, via n_steps exact log-Euler steps.
 
     With antithetic=True, n_paths must be even and the paths are returned
@@ -61,7 +62,8 @@ def simulate_terminal(S0, r, sigma, T, n_steps, n_paths, seed=None, antithetic=F
     return ST
 
 
-def simulate_paths(S0, r, sigma, T, n_steps, n_paths, seed=None):
+def simulate_paths(S0: float, r: float, sigma: float, T: float, n_steps: int,
+                   n_paths: int, seed: int | None = None) -> np.ndarray:
     """Full paths including S0 as step 0, shape (n_paths, n_steps + 1). For plots,
     not for pricing -- n_paths is normally small here.
     """
@@ -87,7 +89,9 @@ def simulate_paths(S0, r, sigma, T, n_steps, n_paths, seed=None):
     return paths
 
 
-def price_european(S0, strikes, r, sigma, T, n_steps, n_paths, seed=None, antithetic=False):
+def price_european(S0: float, strikes: list[float], r: float, sigma: float, T: float,
+                   n_steps: int, n_paths: int, seed: int | None = None,
+                   antithetic: bool = False) -> list[dict[str, float]]:
     """Call and put price plus standard error for each strike, from one shared sample.
 
     Returns a list of dicts: {K, call, call_se, put, put_se}, one per strike, in
@@ -123,44 +127,3 @@ def price_european(S0, strikes, r, sigma, T, n_steps, n_paths, seed=None, antith
             "put_se": discount * put_sample.std(ddof=1) / math.sqrt(n_eff),
         })
     return rows
-
-
-TABLE_HEADER = "K call call_se put put_se"
-
-
-def format_table(rows):
-    """The table format shared by mc.py, mc.R and mc.cpp, so run.py compare can
-    parse R and C++ stdout the same way it reads its own output.
-    """
-    lines = [TABLE_HEADER]
-    for row in rows:
-        lines.append("%.6f %.6f %.6f %.6f %.6f" % (
-            row["K"], row["call"], row["call_se"], row["put"], row["put_se"]))
-    return lines
-
-
-def print_table(rows):
-    for line in format_table(rows):
-        print(line)
-
-
-def parse_table(text):
-    """Inverse of format_table. Tolerant of the header line and blank lines, since
-    it is used to read whatever mc.R or mc.cpp printed to stdout.
-    """
-    rows = []
-    for line in text.splitlines():
-        parts = line.split()
-        if len(parts) != 5:
-            continue
-        try:
-            K, call, call_se, put, put_se = (float(p) for p in parts)
-        except ValueError:
-            continue
-        rows.append({"K": K, "call": call, "call_se": call_se, "put": put, "put_se": put_se})
-    return rows
-
-
-def write_json(rows, path):
-    with open(path, "w") as f:
-        json.dump(rows, f, indent=2)

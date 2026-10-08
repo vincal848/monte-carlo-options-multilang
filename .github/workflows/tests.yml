@@ -38,4 +38,6 @@ jobs:
           Rscript --version
           g++ --version
       - name: Test
+        env:
+          REQUIRE_TOOLCHAINS: "1"
         run: pytest tests/test_cross_language.py -q
